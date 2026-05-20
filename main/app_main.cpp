@@ -10,6 +10,8 @@
 #include <esp_matter.h>
 #include <nvs_flash.h>
 
+#include <platform/CHIPDeviceLayer.h>
+#include <platform/CommissionableDataProvider.h>
 #include <setup_payload/OnboardingCodesUtil.h>
 
 #include "include/matter_endpoints.h"
@@ -52,6 +54,16 @@ extern "C" void app_main(void) {
     PrintOnboardingCodes(chip::RendezvousInformationFlags{}
                              .Set(chip::RendezvousInformationFlag::kBLE)
                              .Set(chip::RendezvousInformationFlag::kOnNetwork));
+
+    // Surface the BLE name the device will advertise pre-commissioning, so a
+    // dev can match it against what shows up in nRF Connect / LightBlue. The
+    // format mirrors what BLEManagerImpl.cpp builds: "<prefix><discriminator>".
+    uint16_t discriminator = 0;
+    if (chip::DeviceLayer::GetCommissionableDataProvider()->GetSetupDiscriminator(discriminator) ==
+        CHIP_NO_ERROR) {
+        ESP_LOGI(kTag, "BLE advertising name: %s%04u", CONFIG_BLE_DEVICE_NAME_PREFIX,
+                 discriminator);
+    }
 
     ESP_LOGI(kTag, "Boot complete. Awaiting Matter commissioning via Apple Home.");
 }

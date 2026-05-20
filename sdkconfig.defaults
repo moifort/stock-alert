@@ -59,6 +59,12 @@ CONFIG_DEVICE_HARDWARE_VERSION=1
 CONFIG_DEVICE_HARDWARE_VERSION_STRING="v1"
 CONFIG_DEVICE_SOFTWARE_VERSION_STRING="0.1.0"
 
+# BLE GAP name advertised pre-commissioning. Final name = prefix + 4-digit
+# discriminator, e.g. "StockAlert-3840". iOS still labels the proximity card
+# as "Matter Accessory" (hard-coded by Apple) but BLE scanners and the
+# manual "More options" flow show this name.
+CONFIG_BLE_DEVICE_NAME_PREFIX="StockAlert-"
+
 # Wi-Fi tuning for Matter
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=16
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
