@@ -27,6 +27,25 @@ CONFIG_ENABLE_CHIP_SHELL=y
 CONFIG_OPENTHREAD_ENABLED=n
 CONFIG_USE_MINIMAL_MDNS=n
 
+# Bluetooth (NimBLE) — required for Matter commissioning over Wi-Fi.
+# Without this, the iPhone cannot discover the device when it boots in
+# commissioning mode, and the "nearby accessory" prompt never appears.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_NIMBLE_EXT_ADV=n
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=5120
+
+# Device identity advertised over BLE and surfaced in Apple Home.
+# Vendor ID 0xFFF1 / Product ID 0x8000 are Matter "test" identifiers — fine
+# for development; would need real CSA-assigned IDs for production.
+CONFIG_DEVICE_VENDOR_NAME="Stock Alert"
+CONFIG_DEVICE_VENDOR_ID=0xFFF1
+CONFIG_DEVICE_PRODUCT_NAME="Stock Sensor"
+CONFIG_DEVICE_PRODUCT_ID=0x8000
+CONFIG_DEVICE_HARDWARE_VERSION=1
+CONFIG_DEVICE_HARDWARE_VERSION_STRING="v1"
+CONFIG_DEVICE_SOFTWARE_VERSION_STRING="0.1.0"
+
 # Wi-Fi tuning for Matter
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=16
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
