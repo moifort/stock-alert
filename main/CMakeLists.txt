@@ -1,6 +1,8 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "matter_endpoints.cpp"
+        "stock_sensor.cpp"
     INCLUDE_DIRS
         "."
     PRIV_INCLUDE_DIRS
