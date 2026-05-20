@@ -1,0 +1,30 @@
+# ESP-IDF build artifacts
+build/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old
+sdkconfig.ci
+*.pyc
+
+# Editor / OS / agent state
+.vscode/
+.idea/
+.claude/
+.DS_Store
+*.swp
+*.swo
+
+# Local secrets / certs
+secrets/
+*.pem
+*.key
+*.crt
+factory_partition.bin
+matter_factory.bin
+
+# Toolchain (installed via scripts/setup.sh into ./toolchain or via $HOME/esp)
+toolchain/
+
+# Logs
+*.log

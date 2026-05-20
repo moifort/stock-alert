@@ -1,0 +1,10 @@
+# ESP32-S3 8MB partition table for Matter + OTA.
+# Sizes derived from esp-matter examples (light, contact_sensor).
+# Name,    Type, SubType, Offset,   Size,    Flags
+nvs,       data, nvs,     0x9000,   0x6000,
+phy_init,  data, phy,     0xf000,   0x1000,
+factory,   app,  factory, 0x10000,  1900K,
+ota_0,     app,  ota_0,   ,         1900K,
+ota_1,     app,  ota_1,   ,         1900K,
+otadata,   data, ota,     ,         0x2000,
+nvs_user,  data, nvs,     ,         0x6000,
