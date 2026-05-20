@@ -11,6 +11,17 @@ TOOLCHAIN_DIR="${REPO_ROOT}/toolchain"
 IDF_VERSION="${IDF_VERSION:-v5.5.3}"
 MATTER_VERSION="${MATTER_VERSION:-release/v1.4.2}"
 
+# Espressif's installer uses Python's stdlib `urllib` which on some macOS Python
+# builds does not trust the system keychain. Point it at the `certifi` bundle
+# so downloads of toolchain tarballs over HTTPS don't fail with CERTIFICATE_VERIFY_FAILED.
+if command -v python3 >/dev/null 2>&1; then
+    CERT_BUNDLE="$(python3 -c 'import certifi; print(certifi.where())' 2>/dev/null || true)"
+    if [ -n "${CERT_BUNDLE}" ] && [ -f "${CERT_BUNDLE}" ]; then
+        export SSL_CERT_FILE="${CERT_BUNDLE}"
+        export REQUESTS_CA_BUNDLE="${CERT_BUNDLE}"
+    fi
+fi
+
 mkdir -p "${TOOLCHAIN_DIR}"
 cd "${TOOLCHAIN_DIR}"
 

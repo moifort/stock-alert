@@ -11,11 +11,26 @@ if [ ! -d "${TOOLCHAIN_DIR}/esp-idf" ] || [ ! -d "${TOOLCHAIN_DIR}/esp-matter" ]
     return 1 2>/dev/null || exit 1
 fi
 
-# shellcheck disable=SC1091
-source "${TOOLCHAIN_DIR}/esp-idf/export.sh"
+# Ensure HTTPS downloads from idf_tools.py / chip-tool succeed on macOS.
+if command -v python3 >/dev/null 2>&1; then
+    CERT_BUNDLE="$(python3 -c 'import certifi; print(certifi.where())' 2>/dev/null || true)"
+    if [ -n "${CERT_BUNDLE}" ] && [ -f "${CERT_BUNDLE}" ]; then
+        export SSL_CERT_FILE="${CERT_BUNDLE}"
+        export REQUESTS_CA_BUNDLE="${CERT_BUNDLE}"
+    fi
+fi
 
 export ESP_MATTER_PATH="${TOOLCHAIN_DIR}/esp-matter"
 export ESP_MATTER_DEVICE_PATH="${ESP_MATTER_PATH}/device_hal/device/esp32s3_devkit_c"
 
+# shellcheck disable=SC1091
+source "${TOOLCHAIN_DIR}/esp-idf/export.sh"
+
+# Adds the pigweed env (gn, ninja, etc.) and Matter Python deps to PATH.
+# Required by the chip CMake build inside any idf.py invocation.
+# shellcheck disable=SC1091
+source "${ESP_MATTER_PATH}/export.sh"
+
 echo "✅ ESP-IDF: $(idf.py --version 2>/dev/null | head -1)"
 echo "✅ ESP-Matter at ${ESP_MATTER_PATH}"
+echo "✅ gn: $(command -v gn || echo 'NOT FOUND')"
