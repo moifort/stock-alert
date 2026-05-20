@@ -10,6 +10,8 @@
 #include <esp_matter.h>
 #include <nvs_flash.h>
 
+#include <setup_payload/OnboardingCodesUtil.h>
+
 #include "include/matter_endpoints.h"
 #include "include/stock_alert_config.h"
 #include "include/stock_sensor.h"
@@ -42,6 +44,14 @@ extern "C" void app_main(void) {
     ESP_ERROR_CHECK(stock_alert::matter::setup_endpoints());
     ESP_ERROR_CHECK(esp_matter::start(on_matter_event));
     ESP_ERROR_CHECK(stock_alert::sensor::start(on_stock_state_change, nullptr));
+
+    // Surface the QR code and manual pairing code in the serial log so a dev
+    // can commission the device without a separate chip-tool invocation.
+    // BLE is always available on the ESP32-S3, so we advertise that capability
+    // alongside the on-network discovery.
+    PrintOnboardingCodes(chip::RendezvousInformationFlags{}
+                             .Set(chip::RendezvousInformationFlag::kBLE)
+                             .Set(chip::RendezvousInformationFlag::kOnNetwork));
 
     ESP_LOGI(kTag, "Boot complete. Awaiting Matter commissioning via Apple Home.");
 }
