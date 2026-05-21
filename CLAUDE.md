@@ -37,6 +37,7 @@ idf.py -p /dev/cu.usbmodem2101 flash monitor
 - **No magic numbers** — every threshold, GPIO, or timeout must be a named constant in a header.
 - **Hysteresis is mandatory** — never write `if (distance > threshold)` without a paired "back to OK" check. See `architecture-decisions` in memory.
 - **NVS for runtime config** — anything the user might tune (thresholds, sample rate) lives in NVS, not in `#define`.
+- **Matter SDK from non-CHIP tasks** — every `esp_matter::*` call originating from a FreeRTOS task (button poll, sensor poll, etc.) MUST go through `chip::DeviceLayer::SystemLayer().ScheduleLambda([...](){ ... })`. See the canonical pattern in `main/matter_endpoints.cpp::publish_state`. The caller task stack must be ≥ 6 KB. Direct SDK calls from a 2 KB task stack will overflow on the first attribute write — observed and fixed in `cf92b87`.
 
 ## Commit style
 
