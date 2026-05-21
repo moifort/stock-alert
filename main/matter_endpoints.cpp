@@ -3,6 +3,7 @@
 #include <esp_log.h>
 #include <esp_matter.h>
 #include <esp_matter_attribute_utils.h>
+#include <platform/CHIPDeviceLayer.h>
 
 #include "include/stock_alert_config.h"
 
@@ -73,21 +74,26 @@ esp_err_t setup_endpoints() {
 }
 
 void publish_state(sensor::StockState state) {
-    using namespace chip::app::Clusters;
-
     if (s_contact_endpoint_id == 0) {
         ESP_LOGW(kTag, "publish_state called before endpoint setup");
         return;
     }
 
     // ContactSensor sem: closed (true) when stock is OK, open (false) when low.
-    const bool closed = (state == sensor::StockState::kOk);
-    esp_matter_attr_val_t val = esp_matter_bool(closed);
-    esp_matter::attribute::update(s_contact_endpoint_id,
-                                  BooleanState::Id,
-                                  BooleanState::Attributes::StateValue::Id,
-                                  &val);
-    ESP_LOGI(kTag, "BooleanState -> %s", closed ? "closed (OK)" : "open (LOW)");
+    // Capture inputs by value into a lambda that runs on the CHIP thread to
+    // avoid touching the SDK from arbitrary FreeRTOS tasks (thread safety) and
+    // to keep the caller's task stack small.
+    const bool     closed      = (state == sensor::StockState::kOk);
+    const uint16_t endpoint_id = s_contact_endpoint_id;
+    chip::DeviceLayer::SystemLayer().ScheduleLambda([endpoint_id, closed]() {
+        using namespace chip::app::Clusters;
+        esp_matter_attr_val_t val = esp_matter_bool(closed);
+        esp_matter::attribute::update(endpoint_id,
+                                      BooleanState::Id,
+                                      BooleanState::Attributes::StateValue::Id,
+                                      &val);
+        ESP_LOGI(kTag, "BooleanState -> %s", closed ? "closed (OK)" : "open (LOW)");
+    });
 }
 
 }  // namespace stock_alert::matter

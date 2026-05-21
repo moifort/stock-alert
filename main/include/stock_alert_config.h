@@ -31,7 +31,9 @@ constexpr int kButtonLongPressMs  = 3000;   // factory-reset threshold
 // FreeRTOS task tuning.
 constexpr int kSensorTaskStackBytes = 4096;
 constexpr int kSensorTaskPriority   = 5;
-constexpr int kButtonTaskStackBytes = 2048;
+// Stack must accommodate the on_button_short callback which schedules a Matter
+// attribute update through the SDK — observed >4 KB consumption in practice.
+constexpr int kButtonTaskStackBytes = 6144;
 constexpr int kButtonTaskPriority   = 5;
 
 }  // namespace stock_alert::config
