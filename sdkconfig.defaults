@@ -5,6 +5,7 @@ CONFIG_IDF_TARGET="esp32s3"
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_CUSTOM_APP_BIN_OFFSET=0x10000
 
 # Flash size and mode for XIAO ESP32-S3 Sense
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
@@ -16,56 +17,37 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 
-# Main task stack — Matter needs headroom
-CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# Main task stack — HAP pair-setup is CPU-heavy, give it a bit of headroom.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144
 
 # Logging
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 
-# Matter / CHIP base
-CONFIG_ENABLE_CHIP_SHELL=y
-CONFIG_OPENTHREAD_ENABLED=n
-CONFIG_USE_MINIMAL_MDNS=n
+# HAP runtime — non-MFi (no Apple authentication coprocessor on the XIAO).
+# This builds the software-auth variant of the SDK, valid for personal /
+# uncertified accessories. Production / MFi-certified builds would set
+# CONFIG_HAP_MFI_ENABLE=y.
+CONFIG_HAP_MFI_ENABLE=n
 
-# Bluetooth (NimBLE) — required for Matter commissioning over Wi-Fi.
-# Without this, the iPhone cannot discover the device when it boots in
-# commissioning mode, and the "nearby accessory" prompt never appears.
-CONFIG_BT_ENABLED=y
-CONFIG_BT_NIMBLE_ENABLED=y
-CONFIG_BT_NIMBLE_EXT_ADV=n
-CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=5120
-# Disable BLE auto-reconnect: a stale half-open BLE connection during a
-# commissioning re-attempt has been observed to make Apple Home drop after
-# the DAC chain transfer (status=7 / BLE_HS_EBADDATA).
-CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT=n
+# Unified provisioning over SoftAP. Avoids pulling in NimBLE just for the
+# initial Wi-Fi handoff — Apple Home uses mDNS over IP for pairing anyway,
+# so BLE serves no purpose past provisioning.
+CONFIG_APP_WIFI_USE_PROVISIONING=y
+CONFIG_APP_WIFI_USE_UNIFIED_PROVISIONING=y
+CONFIG_APP_WIFI_PROV_TRANSPORT_SOFTAP=y
+CONFIG_ENABLE_UNIFIED_PROVISIONING=y
 
-# IPv6 stack — Matter mDNS service discovery on local link relies on IPv6.
-# Without these flags, the device is sometimes discoverable over BLE but
-# cannot be reached on the operational network after commissioning.
-CONFIG_LWIP_IPV6_AUTOCONFIG=y
-CONFIG_LWIP_HOOK_IP6_ROUTE_DEFAULT=y
-CONFIG_LWIP_HOOK_ND6_GET_GW_DEFAULT=y
-# One unique-local IPv6 per fabric + one link-local = MAX_FABRIC + 1.
-CONFIG_LWIP_IPV6_NUM_ADDRESSES=6
+# LwIP — HAP runs several concurrent TCP streams (pair-verify + characteristic
+# updates) and needs more sockets than the IDF defaults. Values mirror what
+# the smart_outlet HAP example uses.
+CONFIG_LWIP_MAX_SOCKETS=16
+CONFIG_LWIP_SO_REUSE=y
+CONFIG_LWIP_MAX_ACTIVE_TCP=12
+CONFIG_LWIP_MAX_LISTENING_TCP=12
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=10
+CONFIG_LWIP_AUTOIP=y
 
-# Device identity advertised over BLE and surfaced in Apple Home.
-# Vendor ID 0xFFF1 / Product ID 0x8000 are Matter "test" identifiers — fine
-# for development; would need real CSA-assigned IDs for production.
-CONFIG_DEVICE_VENDOR_NAME="Stock Alert"
-CONFIG_DEVICE_VENDOR_ID=0xFFF1
-CONFIG_DEVICE_PRODUCT_NAME="Stock Sensor"
-CONFIG_DEVICE_PRODUCT_ID=0x8000
-CONFIG_DEVICE_HARDWARE_VERSION=1
-CONFIG_DEVICE_HARDWARE_VERSION_STRING="v1"
-CONFIG_DEVICE_SOFTWARE_VERSION_STRING="0.1.0"
-
-# BLE GAP name advertised pre-commissioning. Final name = prefix + 4-digit
-# discriminator, e.g. "StockAlert-3840". iOS still labels the proximity card
-# as "Matter Accessory" (hard-coded by Apple) but BLE scanners and the
-# manual "More options" flow show this name.
-CONFIG_BLE_DEVICE_NAME_PREFIX="StockAlert-"
-
-# Wi-Fi tuning for Matter
+# Wi-Fi tuning
 CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=16
 CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
 CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=32
@@ -78,9 +60,9 @@ CONFIG_ESP_WIFI_ENABLE_WPA3_SAE=y
 CONFIG_ESP_WIFI_ENABLE_WPA3_OWE_STA=y
 CONFIG_ESP_WIFI_MBEDTLS_CRYPTO=y
 
-# mbedTLS — Matter needs these
-CONFIG_MBEDTLS_HKDF_C=y
-CONFIG_MBEDTLS_ECP_DP_SECP256R1_ENABLED=y
+# Hardware MPI accelerator — pair-setup uses SRP (large modular exponentiations)
+# and pure-software mbedTLS is unusably slow on the S3 (~12s vs ~2s with HW).
+CONFIG_MBEDTLS_HARDWARE_MPI=y
 
-# NVS encryption disabled for dev — re-enable for production builds
+# NVS encryption disabled for dev — re-enable for production builds.
 CONFIG_NVS_ENCRYPTION=n

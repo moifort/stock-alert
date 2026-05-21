@@ -1,9 +1,16 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
-        "matter_endpoints.cpp"
+        "homekit_accessory.cpp"
         "stock_sensor.cpp"
     INCLUDE_DIRS
         "."
     PRIV_INCLUDE_DIRS
-        "${CMAKE_CURRENT_LIST_DIR}/include")
+        "${CMAKE_CURRENT_LIST_DIR}/include"
+    REQUIRES
+        nvs_flash
+        esp_wifi
+        app_wifi
+        app_hap_setup_payload
+        esp_hap_core
+        esp_hap_apple_profiles)
