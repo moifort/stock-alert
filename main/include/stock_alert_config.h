@@ -17,10 +17,14 @@ constexpr int kI2cSclGpio = 6;
 constexpr int kI2cFreqHz  = 100'000;
 
 // Distance thresholds (mm) for ContactSensor state transitions.
-// Hysteresis: state opens (low stock) at LOW; closes again only when below OK.
+// Use case: the sensor sits close to the object it tracks (e.g. lid above a
+// jar, or detecting presence on a shelf), so "present" means the object is
+// 1-3 cm away and "absent" means there is nothing nearby for several cm.
+// Hysteresis: state opens (low stock / object absent) when distance crosses
+// LOW; it closes again only when distance drops below OK.
 // Defaults — overridden by NVS at runtime once persistence lands.
-constexpr int kThresholdLowMmDefault = 220;
-constexpr int kThresholdOkMmDefault  = 180;
+constexpr int kThresholdLowMmDefault = 50;   // > 5 cm → absent / stock low
+constexpr int kThresholdOkMmDefault  = 30;   // < 3 cm → present / stock OK
 
 // BOOT button on the XIAO ESP32-S3 Sense (GPIO 0, pulled HIGH; pressed = LOW).
 // Used as the Phase 1 mock trigger: short-press toggles the stock state,
