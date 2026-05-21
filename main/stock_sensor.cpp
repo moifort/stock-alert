@@ -1,10 +1,6 @@
 #include "include/stock_sensor.h"
 
 #include <esp_log.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
-#include "include/stock_alert_config.h"
 
 namespace stock_alert::sensor {
 
@@ -12,45 +8,33 @@ namespace {
 
 constexpr const char *kTag = "stock_sensor";
 
-struct TaskCtx {
-    StateChangeCb callback;
-    void *user_data;
-};
-
-[[noreturn]] void mock_task(void *arg) {
-    auto *ctx = static_cast<TaskCtx *>(arg);
-    StockState state = StockState::kOk;
-    while (true) {
-        vTaskDelay(pdMS_TO_TICKS(config::kMockTogglePeriodMs));
-        state = (state == StockState::kOk) ? StockState::kLow : StockState::kOk;
-        ESP_LOGI(kTag, "[MOCK] flipping state -> %s",
-                 state == StockState::kLow ? "LOW (open)" : "OK (closed)");
-        if (ctx->callback != nullptr) {
-            ctx->callback(state, ctx->user_data);
-        }
-    }
-}
+StateChangeCb s_callback   = nullptr;
+void         *s_user_data  = nullptr;
+StockState    s_state      = StockState::kOk;
+bool          s_started    = false;
 
 }  // namespace
 
 esp_err_t start(StateChangeCb callback, void *user_data) {
-    static TaskCtx ctx{};
-    ctx.callback  = callback;
-    ctx.user_data = user_data;
-
-    BaseType_t ok = xTaskCreate(mock_task,
-                                "stock_sensor",
-                                config::kSensorTaskStackBytes,
-                                &ctx,
-                                config::kSensorTaskPriority,
-                                nullptr);
-    if (ok != pdPASS) {
-        ESP_LOGE(kTag, "Failed to spawn sensor task");
-        return ESP_ERR_NO_MEM;
-    }
-    ESP_LOGI(kTag, "Mock sensor task started (toggle every %dms)",
-             config::kMockTogglePeriodMs);
+    s_callback  = callback;
+    s_user_data = user_data;
+    s_state     = StockState::kOk;
+    s_started   = true;
+    ESP_LOGI(kTag, "Mock sensor armed — initial state OK, toggle via BOOT button");
     return ESP_OK;
+}
+
+void toggle() {
+    if (!s_started) {
+        ESP_LOGW(kTag, "toggle() called before start()");
+        return;
+    }
+    s_state = (s_state == StockState::kOk) ? StockState::kLow : StockState::kOk;
+    ESP_LOGI(kTag, "[MOCK] state -> %s",
+             s_state == StockState::kLow ? "LOW (open)" : "OK (closed)");
+    if (s_callback != nullptr) {
+        s_callback(s_state, s_user_data);
+    }
 }
 
 }  // namespace stock_alert::sensor

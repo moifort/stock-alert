@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "matter_endpoints.cpp"
+        "mock_button.cpp"
         "stock_sensor.cpp"
     INCLUDE_DIRS
         "."

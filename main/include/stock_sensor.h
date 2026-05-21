@@ -5,9 +5,9 @@
 
 // Stock sensor abstraction.
 //
-// The current implementation is a mock that toggles between "low" and "ok"
-// every `kMockTogglePeriodMs`. A real VL53L1X-backed implementation will
-// replace stock_sensor.cpp without changing this interface.
+// The current implementation is a mock backed by the BOOT button: each short
+// press flips the state between kOk and kLow. A real VL53L1X-backed
+// implementation will replace stock_sensor.cpp without changing this interface.
 
 namespace stock_alert::sensor {
 
@@ -20,8 +20,12 @@ enum class StockState : uint8_t {
 
 using StateChangeCb = void (*)(StockState state, void *user_data);
 
-// Starts the sensor sampling task. The callback is invoked from a FreeRTOS
-// task context whenever the debounced state flips.
+// Registers the state-change callback and initializes the mock state to kOk.
+// The callback is invoked synchronously from toggle().
 esp_err_t start(StateChangeCb callback, void *user_data);
+
+// Flips the mocked stock state and fires the registered callback.
+// No-op if start() has not been called.
+void toggle();
 
 }  // namespace stock_alert::sensor

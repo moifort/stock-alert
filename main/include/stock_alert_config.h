@@ -20,11 +20,18 @@ constexpr int kI2cFreqHz  = 400'000;
 constexpr int kThresholdLowMmDefault = 220;
 constexpr int kThresholdOkMmDefault  = 180;
 
-// Mock toggle period — used until the real VL53L1X driver is wired in.
-constexpr int kMockTogglePeriodMs = 30'000;
+// BOOT button on the XIAO ESP32-S3 Sense (GPIO 0, pulled HIGH; pressed = LOW).
+// Used as the Phase 1 mock trigger: short-press toggles the stock state,
+// long-press wipes Matter commissioning so the device can be re-paired.
+constexpr int kButtonGpio         = 0;
+constexpr int kButtonPollPeriodMs = 20;     // debouncing poll cadence
+constexpr int kButtonDebounceMs   = 50;     // ignore presses shorter than this
+constexpr int kButtonLongPressMs  = 3000;   // factory-reset threshold
 
 // FreeRTOS task tuning.
 constexpr int kSensorTaskStackBytes = 4096;
 constexpr int kSensorTaskPriority   = 5;
+constexpr int kButtonTaskStackBytes = 2048;
+constexpr int kButtonTaskPriority   = 5;
 
 }  // namespace stock_alert::config

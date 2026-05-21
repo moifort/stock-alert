@@ -1,9 +1,10 @@
 // stock-alert firmware entry point.
 //
-// Boots NVS, starts Matter with a single ContactSensor endpoint, and kicks off
-// the (currently mocked) stock sampling task. The sensor's state changes flow
-// into the Matter data model via matter::publish_state(), where HomeKit picks
-// them up through the HomePod mini.
+// Boots NVS, starts Matter with a single ContactSensor endpoint, arms the
+// (currently mocked) sensor, and wires the BOOT button as the Phase 1 mock
+// trigger:
+//   - short-press → toggle the stock state (DETECTED ↔ NOT_DETECTED)
+//   - long-press  → factory reset (wipes commissioning, reboots)
 
 #include <esp_err.h>
 #include <esp_log.h>
@@ -15,6 +16,7 @@
 #include <setup_payload/OnboardingCodesUtil.h>
 
 #include "include/matter_endpoints.h"
+#include "include/mock_button.h"
 #include "include/stock_alert_config.h"
 #include "include/stock_sensor.h"
 
@@ -28,6 +30,15 @@ void on_stock_state_change(stock_alert::sensor::StockState state, void * /*user_
 
 void on_matter_event(const ChipDeviceEvent * /*event*/, intptr_t /*arg*/) {
     // Reserved for commissioning lifecycle hooks (e.g., LED feedback on pair).
+}
+
+void on_button_short(void * /*user_data*/) {
+    stock_alert::sensor::toggle();
+}
+
+void on_button_long(void * /*user_data*/) {
+    ESP_LOGW(kTag, "Long-press detected — wiping Matter commissioning and rebooting");
+    esp_matter::factory_reset();
 }
 
 }  // namespace
@@ -46,6 +57,7 @@ extern "C" void app_main(void) {
     ESP_ERROR_CHECK(stock_alert::matter::setup_endpoints());
     ESP_ERROR_CHECK(esp_matter::start(on_matter_event));
     ESP_ERROR_CHECK(stock_alert::sensor::start(on_stock_state_change, nullptr));
+    ESP_ERROR_CHECK(stock_alert::button::start(on_button_short, on_button_long, nullptr));
 
     // Surface the QR code and manual pairing code in the serial log so a dev
     // can commission the device without a separate chip-tool invocation.
