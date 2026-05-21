@@ -60,6 +60,10 @@ CONFIG_ESP_WIFI_ENABLE_WPA3_SAE=y
 CONFIG_ESP_WIFI_ENABLE_WPA3_OWE_STA=y
 CONFIG_ESP_WIFI_MBEDTLS_CRYPTO=y
 
+# CPU @ 240 MHz — HAP pair-setup is CPU-bound (SRP + Curve25519); at the
+# default 160 MHz iOS times out before the verifier is computed.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
 # Hardware MPI accelerator — pair-setup uses SRP (large modular exponentiations)
 # and pure-software mbedTLS is unusably slow on the S3 (~12s vs ~2s with HW).
 CONFIG_MBEDTLS_HARDWARE_MPI=y
