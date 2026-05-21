@@ -1,40 +1,40 @@
 # Stock Alert
 
-Un petit capteur Apple Home qui te prévient quand un bocal, une boîte ou un
-réservoir se vide. Tu ranges le bidule au-dessus d'un contenant — quand le
-niveau passe sous un seuil que tu choisis, ton iPhone te notifie comme si une
-porte venait de s'ouvrir.
+A small Apple Home accessory that notifies you when something you care about
+is running low — coffee beans, dog food, printer paper, screws, spare filters,
+soap refills, whatever you don't want to discover empty at the worst moment.
+Mount the device above a container, set a threshold, and your iPhone pings
+you the way it would for a door being opened.
 
-<!-- TODO photo : le device monté au-dessus d'un bocal -->
-<!-- TODO photo : la notification Apple Home -->
+<!-- TODO photo: device mounted above a container -->
+<!-- TODO photo: the Apple Home notification on iPhone -->
 
-> 🚧 **Phase 1 (état actuel) :** le capteur de distance n'est pas encore câblé,
-> un bouton physique sur la carte simule les changements d'état pour valider
-> toute la chaîne Apple Home. La Phase 2 branchera le vrai capteur ToF.
+> 🚧 **Phase 1 (current):** the distance sensor is not yet wired. A physical
+> button on the board simulates state changes so the full Apple Home chain
+> can be validated end-to-end. Phase 2 will plug the real ToF sensor in.
 
-## Ce que ça fait, concrètement
+## What it does, in practice
 
-- Apparaît dans l'app **Maison** d'iOS comme un **détecteur de contact**
-  (l'équivalent virtuel d'un capteur de porte).
-- Deux états : **`Fermé`** = "stock OK", **`Ouvert`** = "stock bas".
-- Tu peux créer des **automatisations** dessus : recevoir une notification,
-  allumer une LED, déclencher un scénario, envoyer un message — tout ce
-  qu'Apple Home permet sur un capteur de contact.
-- Communique en **Matter over Wi-Fi** (pas de hub propriétaire, pas d'app
-  tierce). Un HomePod, HomePod mini ou Apple TV 4K récent fait office de
-  concentrateur Matter.
+- Shows up in the iOS **Home** app as a **Contact Sensor** (the virtual
+  equivalent of a door/window sensor).
+- Two states: **`Closed`** = stock OK, **`Open`** = stock low.
+- You can build any **automation** Apple Home supports on top of it: push
+  notification, scene trigger, LED reminder, voice announcement, message —
+  whatever you'd do for a door sensor.
+- Talks **Matter over Wi-Fi** — no proprietary hub, no third-party app. Any
+  recent HomePod, HomePod mini, or Apple TV 4K acts as the Matter controller.
 
-## Le matériel
+## Hardware
 
-| Composant                                   | Pourquoi                                          | ~Prix    |
-| ------------------------------------------- | ------------------------------------------------- | -------- |
-| Seeed Studio **XIAO ESP32-S3**              | MCU compact avec Wi-Fi + Bluetooth + USB-C       | ~10 €    |
-| **Antenne U.FL / IPEX** 2.4 GHz             | ⚠️ Quasi-obligatoire (voir Troubleshooting)       | ~3 €     |
-| Capteur ToF **VL53L1X**                     | Mesure la distance jusqu'au contenu (Phase 2)     | ~7 €     |
-| 4 fils Dupont F-F                            | Câblage capteur ↔ carte                            | ~1 €     |
-| Câble USB-C → USB-A ou USB-C                | Pour flasher le firmware                          | déjà ✓   |
+| Component                                  | Why                                                | ~Price  |
+| ------------------------------------------ | -------------------------------------------------- | ------- |
+| Seeed Studio **XIAO ESP32-S3**             | Tiny MCU with Wi-Fi + Bluetooth + USB-C            | ~10 €   |
+| **U.FL / IPEX 2.4 GHz antenna**            | ⚠️ Practically mandatory (see Troubleshooting)     | ~3 €    |
+| **VL53L1X** Time-of-Flight sensor          | Measures distance down to the stock surface (P2)   | ~7 €    |
+| 4 female-to-female Dupont wires            | Sensor ↔ board wiring                              | ~1 €    |
+| USB-C cable                                | Flashing the firmware                              | likely ✓ |
 
-### Câblage du capteur (Phase 2)
+### Sensor wiring (Phase 2)
 
 | VL53L1X | XIAO ESP32-S3       |
 | ------- | ------------------- |
@@ -43,45 +43,45 @@ porte venait de s'ouvrir.
 | `SDA`   | `D4` (GPIO 5)       |
 | `SCL`   | `D5` (GPIO 6)       |
 
-> ⚠️ Ne JAMAIS alimenter le VL53L1X en 5 V. Les GPIO du XIAO sont 3.3 V only.
+> ⚠️ Never feed the VL53L1X 5 V — the XIAO GPIOs are 3.3 V only.
 
-<!-- TODO photo : câblage propre du VL53L1X sur le XIAO -->
+<!-- TODO photo: clean wiring of the VL53L1X to the XIAO -->
 
-## Installation depuis un Mac
+## Installing from a Mac
 
-### 0. Pré-requis
+### 0. Prerequisites
 
 ```bash
-# Si pas déjà installés
-xcode-select --install                  # outils Apple
+# Skip whatever you already have
+xcode-select --install
 brew install git python@3.13 cmake ninja dfu-util ccache
 ```
 
-Python 3.10 ou supérieur. Pas besoin d'Arduino ni de PlatformIO.
+Python 3.10 or newer. No Arduino IDE, no PlatformIO.
 
-### 1. Cloner
+### 1. Clone
 
 ```bash
 git clone https://github.com/moifort/stock-alert.git
 cd stock-alert
 ```
 
-### 2. Installer la toolchain (~30 min, ~3 Go)
+### 2. Install the toolchain (~30 min, ~3 GB)
 
 ```bash
 ./scripts/setup.sh
 ```
 
-Le script télécharge et configure ESP-IDF v5.5 + ESP-Matter v1.4 dans
-`./toolchain/` (ignoré de git). C'est long mais c'est une fois pour toutes.
+The script downloads and pins ESP-IDF v5.5 + ESP-Matter v1.4 inside
+`./toolchain/` (gitignored). One-time cost.
 
-### 3. Charger l'environnement (à chaque nouvelle session shell)
+### 3. Load the environment (every fresh shell)
 
 ```bash
 source ./scripts/activate.sh
 ```
 
-Tu devrais voir :
+Expected output:
 
 ```
 ✅ ESP-IDF: ESP-IDF v5.5.3
@@ -89,121 +89,124 @@ Tu devrais voir :
 ✅ gn: .../pigweed/gn
 ```
 
-### 4. Compiler
+### 4. Build
 
 ```bash
 idf.py set-target esp32s3
 idf.py build
 ```
 
-La première compilation prend 5–10 min (Matter est lourd). Les suivantes
-quelques secondes grâce au cache incrémental.
+First build takes 5–10 min (Matter is heavy). Incremental rebuilds are
+seconds thanks to ninja + ccache.
 
-### 5. Brancher le XIAO en USB-C, puis flasher
+### 5. Plug the XIAO over USB-C, then flash
 
 ```bash
-# Le port peut être /dev/cu.usbmodem2101, /dev/cu.usbmodem1101, etc.
+# Port might be /dev/cu.usbmodem2101, /dev/cu.usbmodem1101, etc.
 ls /dev/cu.usbmodem*
 idf.py -p /dev/cu.usbmodem2101 erase-flash flash monitor
 ```
 
-Le serial monitor affiche le log de boot et un **QR code Matter**. Garde-le
-ouvert pour la suite.
+The serial monitor prints the boot log and a **Matter QR code**. Keep it
+open for the next step.
 
-> Pour quitter le monitor : `Ctrl+]`.
+> To exit the monitor: `Ctrl+]`.
 
-## Pairing avec Apple Home
+## Pairing with Apple Home
 
-<!-- TODO photo : QR code Matter scanné depuis Maison -->
+<!-- TODO photo: Matter QR code scanned from the Home app -->
 
-1. Sur ton iPhone, ouvre l'app **Maison** → **+** → **Ajouter un accessoire**.
-2. **Scanne le QR code** affiché dans le serial monitor (ou tape "Plus
-   d'options" et entre le code à 11 chiffres affiché juste après le QR).
-3. Apple Home affichera **"Accessoire Matter non certifié"** — c'est normal
-   et inoffensif (on utilise un Vendor ID de test). Tape **Ajouter quand même**.
-4. Apple Home demande à quel Wi-Fi le rattacher et pousse les credentials
-   au device via Bluetooth.
-5. Au bout de 1 à 2 minutes, le device apparaît comme **Stock Sensor** avec
-   l'icône d'un détecteur de contact.
+1. Open the **Home** app on your iPhone → **+** → **Add Accessory**.
+2. **Scan the QR code** displayed in the serial monitor (or tap "More
+   options" and enter the 11-digit code printed just below the QR).
+3. Apple Home will say **"Uncertified Matter Accessory"** — that's expected
+   and harmless (we use a Matter Test Vendor ID). Tap **Add Anyway**.
+4. Apple Home asks which Wi-Fi to use and pushes the credentials to the
+   device over Bluetooth.
+5. After 1–2 minutes the device shows up as **Stock Sensor** with the
+   contact-sensor glyph.
 
-> **Important :** garde l'app Maison **au premier plan** pendant toute la durée
-> du pairing. Ne verrouille pas l'iPhone, ne bascule pas vers une autre app.
-> Apple Home enchaîne deux fabrics Matter (un pour ton iPhone, un pour ton
-> HomePod) et le 2ᵉ peut échouer si tu lâches l'attention.
+> **Important:** keep the Home app **in the foreground** during the entire
+> pairing. Don't lock the iPhone, don't switch to another app. Apple Home
+> commissions two Matter fabrics back-to-back (one for your iPhone, one for
+> your HomePod), and the second one can time out if attention is lost.
 
-## Utilisation au quotidien (Phase 1)
+## Day-to-day use (Phase 1)
 
-Une fois pairé, deux gestes physiques sur la carte XIAO :
+Two physical gestures on the XIAO board:
 
-| Geste                          | Effet                                                |
-| ------------------------------ | ---------------------------------------------------- |
-| Appui court (< 3 s) sur **B**  | Bascule l'état Fermé ↔ Ouvert dans Maison           |
-| Appui long (≥ 3 s) sur **B**   | Réinitialisation complète (efface le pairing Matter) |
-| Appui court sur **R**          | Reboot logiciel (préserve le pairing)                |
+| Gesture                          | Effect                                           |
+| -------------------------------- | ------------------------------------------------ |
+| Short press (< 3 s) on **B**     | Toggle the state Closed ↔ Open in Home          |
+| Long press (≥ 3 s) on **B**      | Full reset (wipes the Matter pairing)            |
+| Short press on **R**             | Software reboot (keeps the pairing)              |
 
-Les boutons sont **microscopiques** (composants SMD ~1.5 mm × 1.5 mm) à
-gauche du module Seeed, près du connecteur USB-C. Lettres `B` et `R`
-sérigraphiées en blanc à côté. Presser avec un ongle ou la pointe d'un stylo.
+The buttons are **tiny** SMD components (~1.5 mm × 1.5 mm) to the left of the
+Seeed module, near the USB-C connector. Labels `B` and `R` are silkscreened
+in white next to them. Press with a fingernail or a retracted pen tip.
 
-Le changement d'état est visible dans Maison **après 1 à 5 secondes** (latence
-normale Apple Home + iCloud Sync, identique aux produits Aqara / Eve).
+State changes propagate to the Home app within **1–5 seconds** — that's the
+normal end-to-end latency for Apple Home + iCloud Sync, same as Aqara / Eve
+contact sensors.
 
-## Feuille de route
+## Roadmap
 
-- ✅ **Phase 1** — accessoire Matter + bouton physique simulant un capteur
-- 🚧 **Phase 2** — câblage du VL53L1X, lecture périodique, déclenchement
-  automatique avec hystérésis (`seuil_low` / `seuil_ok` configurables via NVS)
-- 🔮 **Phase 3** — boîtier imprimé 3D, fixation magnétique au-dessus du
-  contenant, autonomie sur batterie + USB-C charging
+- ✅ **Phase 1** — Matter accessory + physical button simulating a sensor
+- 🚧 **Phase 2** — wire the VL53L1X, periodic distance sampling, automatic
+  triggering with hysteresis (`threshold_low` / `threshold_ok` configurable
+  through NVS)
+- 🔮 **Phase 3** — 3D-printed enclosure, magnetic mount above the container,
+  battery + USB-C charging for cordless operation
 
 ## Troubleshooting
 
-### Apple Home affiche "Accessoire sans réponse"
+### Apple Home shows "Accessory Not Responding"
 
-Le device est commissioné mais ton hub Apple ne peut pas lui parler en local.
-Cause la plus fréquente : **AP isolation** activée sur ton réseau Wi-Fi
-(souvent par défaut sur les SSID "IoT" séparés). À désactiver dans l'interface
-admin de ta box. Le device et le HomePod doivent pouvoir se parler en
-client-à-client sur le même SSID, sinon Matter ne fonctionne pas.
+The device is paired but your Apple hub can't reach it on the local network.
+Most common cause: **AP isolation** enabled on your Wi-Fi (often the default
+on dedicated "IoT" SSIDs). Disable it in your router's admin UI. The device
+and the HomePod must be allowed to talk client-to-client on the same SSID,
+otherwise Matter cannot work at all.
 
-### Le pairing échoue, le device ne se voit dans aucun scan Wi-Fi
+### Pairing fails, the device shows up in no Wi-Fi scan
 
-Quasi-toujours un **problème d'antenne**. Le XIAO ESP32-S3 est livré configuré
-pour utiliser une antenne externe via le connecteur U.FL — sans antenne
-branchée, le signal radio est ~30 dB plus faible que la normale (RSSI -90+ dBm
-au lieu de -50). Solutions :
+Almost always an **antenna problem**. The XIAO ESP32-S3 ships configured to
+use an external antenna via the U.FL connector — with nothing plugged in,
+the radio sensitivity drops by ~30 dB (RSSI around -90 dBm instead of -50).
+Two fixes:
 
-1. **Brancher une antenne U.FL/IPEX 2.4 GHz** (~3 € sur Amazon, plug & play)
-2. **Déplacer la résistance 0 Ω** sur les pads `PCB` (sur la face arrière du
-   board) pour utiliser l'antenne céramique intégrée au module — moins de
-   portée mais zéro accessoire. Nécessite un fer à souder fin et une loupe.
+1. **Plug a U.FL / IPEX 2.4 GHz antenna** (~3 € on Amazon, plug & play)
+2. **Move the 0-ohm resistor** to the `PCB` pads (on the back of the board)
+   to route the signal to the antenna trace already etched on the module.
+   Shorter range than an external antenna but zero extra hardware. Needs a
+   fine-tip iron and a magnifier.
 
-### `pairing failed` après plusieurs tentatives
+### `Pairing failed` after multiple attempts
 
-1. **Vérifier qu'un Home hub est actif** : Maison → Réglages du domicile →
-   Concentrateurs et passerelles → au moins un HomePod / Apple TV en
-   **Connecté**. Sans hub, Matter ne s'installera pas.
-2. **Supprimer toute trace fantôme** : si une précédente tentative a laissé
-   un "Accessoire Matter" résiduel, appui long → Supprimer, puis retente.
-3. **Effacer le NVS du device** : `idf.py -p <port> erase-flash flash` pour
-   repartir d'un état complètement vierge.
+1. **Check that a Home hub is active**: Home app → Home Settings → Hubs &
+   Bridges → at least one HomePod / Apple TV in **Connected** state. Without
+   a hub, Matter accessories cannot be added.
+2. **Clear any phantom entries**: if a previous failed attempt left a
+   "Matter Accessory" leftover, long-press → Remove Accessory, then retry.
+3. **Wipe the device NVS**: `idf.py -p <port> erase-flash flash` for a
+   completely fresh state.
 
-### Le bouton **B** ne réagit pas
+### The **B** button doesn't respond
 
-Ce sont des composants SMD très plats. Presser bien au centre, pas sur le
-côté. Le `mock_button` log dans le serial monitor confirme la détection.
+The SMD buttons are very flat. Press squarely in the centre, not on the
+edge. The `mock_button` line in the serial monitor confirms detection.
 
-## Sous le capot (pour les curieux)
+## Under the hood (for the curious)
 
-- Firmware en **C++17** sur **ESP-IDF v5.5** + **ESP-Matter v1.4** (SDK
-  Espressif officiel, code-first — pas de fichier ZAP à compiler à la main).
-- Un seul endpoint Matter : **Contact Sensor** (cluster `BooleanState` 0x0045).
-- Commissioning en BLE + Wi-Fi (multi-admin Apple Home, deux fabrics).
-- Hystérésis Phase 2 : `THRESHOLD_LOW_MM` / `THRESHOLD_OK_MM` séparés pour
-  éviter le flapping autour d'un seuil unique.
-- Constantes hardware centralisées dans `main/include/stock_alert_config.h`.
-- Conventions et pièges spécifiques documentés dans `CLAUDE.md`.
+- Firmware in **C++17** on **ESP-IDF v5.5** + **ESP-Matter v1.4** (Espressif
+  official SDK, code-first — no ZAP file to hand-edit).
+- One Matter endpoint: **Contact Sensor** (`BooleanState` cluster `0x0045`).
+- Commissioning over BLE + Wi-Fi (Apple Home multi-admin, two fabrics).
+- Phase 2 hysteresis: separate `THRESHOLD_LOW_MM` / `THRESHOLD_OK_MM` to
+  avoid flapping around a single threshold.
+- Hardware constants centralised in `main/include/stock_alert_config.h`.
+- Project conventions and gotchas documented in `CLAUDE.md`.
 
-## Licence
+## License
 
-À définir.
+TBD.
