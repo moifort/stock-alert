@@ -5,9 +5,9 @@
 
 // Stock sensor abstraction.
 //
-// The current implementation is a mock backed by the BOOT button: each short
-// press flips the state between kOk and kLow. A real VL53L1X-backed
-// implementation will replace stock_sensor.cpp without changing this interface.
+// Owns the VL53L1X polling task and applies the compile-time hysteresis from
+// stock_alert_config.h to derive the logical stock state. The BOOT button is
+// still wired through toggle() as a manual override for dev / debug.
 
 namespace stock_alert::sensor {
 
@@ -20,12 +20,14 @@ enum class StockState : uint8_t {
 
 using StateChangeCb = void (*)(StockState state, void *user_data);
 
-// Registers the state-change callback and initializes the mock state to kOk.
-// The callback is invoked synchronously from toggle().
+// Initializes the VL53L1X driver, spawns the polling task and registers the
+// state-change callback. The callback is invoked from the polling task when
+// the measured distance crosses a hysteresis threshold, and from toggle()
+// when the BOOT button override fires.
 esp_err_t start(StateChangeCb callback, void *user_data);
 
-// Flips the mocked stock state and fires the registered callback.
-// No-op if start() has not been called.
+// Manually flips the stock state and fires the registered callback, ignoring
+// the current sensor reading. Used by the BOOT-button handler.
 void toggle();
 
 }  // namespace stock_alert::sensor

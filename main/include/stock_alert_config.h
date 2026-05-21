@@ -1,7 +1,7 @@
 #pragma once
 
 // Centralized compile-time configuration for the stock-alert firmware.
-// Runtime-tunable values live in NVS — see stock_sensor::load_thresholds().
+// All values are baked in at build time — edit and reflash to change.
 
 namespace stock_alert::config {
 
@@ -22,9 +22,8 @@ constexpr int kI2cFreqHz  = 100'000;
 // 1-3 cm away and "absent" means there is nothing nearby for several cm.
 // Hysteresis: state opens (low stock / object absent) when distance crosses
 // LOW; it closes again only when distance drops below OK.
-// Defaults — overridden by NVS at runtime once persistence lands.
-constexpr int kThresholdLowMmDefault = 50;   // > 5 cm → absent / stock low
-constexpr int kThresholdOkMmDefault  = 30;   // < 3 cm → present / stock OK
+constexpr int kThresholdLowMm = 50;   // > 5 cm → absent / stock low
+constexpr int kThresholdOkMm  = 30;   // < 3 cm → present / stock OK
 
 // BOOT button on the XIAO ESP32-S3 Sense (GPIO 0, pulled HIGH; pressed = LOW).
 // Used as the Phase 1 mock trigger: short-press toggles the stock state,

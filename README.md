@@ -142,7 +142,7 @@ seconds:
 ### Sensor (primary, automatic)
 
 The VL53L1X polls every **5 seconds**. Distance crosses to/from these
-thresholds (defaults, will be NVS-tunable in Phase 3):
+thresholds (compile-time constants in `main/include/stock_alert_config.h`):
 
 | Distance              | Resulting state     | Maison label |
 | --------------------- | ------------------- | ------------ |
@@ -171,8 +171,9 @@ in white next to them. Press with a fingernail or a retracted pen tip.
 - ✅ **Phase 1** — Matter accessory + physical button driving the state
 - ✅ **Phase 2** — VL53L1X wired, periodic distance sampling, automatic
   state changes with hysteresis
-- 🔮 **Phase 3** — NVS-backed runtime configuration of thresholds, 3D-printed
-  enclosure, magnetic mount, battery + USB-C charging
+- 🔮 **Phase 3** — 3D-printed enclosure, magnetic mount above the container,
+  battery + USB-C charging for cordless operation. Thresholds stay as
+  compile-time constants — re-flash with new values if you need to retune.
 
 ## Troubleshooting
 

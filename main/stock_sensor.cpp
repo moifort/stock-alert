@@ -55,9 +55,9 @@ void apply_state(StockState new_state, const char *reason) {
             continue;
         }
 
-        if (mm > config::kThresholdLowMmDefault) {
+        if (mm > config::kThresholdLowMm) {
             apply_state(StockState::kLow, "distance above LOW threshold");
-        } else if (mm < config::kThresholdOkMmDefault) {
+        } else if (mm < config::kThresholdOkMm) {
             apply_state(StockState::kOk, "distance below OK threshold");
         }
         // Else: inside the hysteresis band (OK..LOW), keep the previous state.
@@ -86,8 +86,8 @@ esp_err_t start(StateChangeCb callback, void *user_data) {
     s_have_sensor = true;
     ESP_LOGI(kTag,
              "VL53L1X armed (poll every %d ms, hysteresis %d/%d mm)",
-             config::kSensorPollPeriodMs, config::kThresholdOkMmDefault,
-             config::kThresholdLowMmDefault);
+             config::kSensorPollPeriodMs, config::kThresholdOkMm,
+             config::kThresholdLowMm);
 
     BaseType_t ok = xTaskCreate(poll_task, "stock_poll",
                                 config::kSensorTaskStackBytes, nullptr,
