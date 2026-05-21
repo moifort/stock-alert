@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time installer for ESP-IDF v5.5.x and esp-homekit-sdk.
+# One-time installer for ESP-IDF v5.5.x and ESP-Matter SDK v1.4.x.
 #
 # Installs everything under ./toolchain/ (kept out of git by .gitignore).
 # Idempotent: re-running is safe — it skips already-cloned repos but refreshes submodules.
@@ -9,7 +9,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLCHAIN_DIR="${REPO_ROOT}/toolchain"
 IDF_VERSION="${IDF_VERSION:-v5.5.3}"
-HOMEKIT_VERSION="${HOMEKIT_VERSION:-master}"
+MATTER_VERSION="${MATTER_VERSION:-release/v1.4.2}"
 
 # Espressif's installer uses Python's stdlib `urllib` which on some macOS Python
 # builds does not trust the system keychain. Point it at the `certifi` bundle
@@ -37,14 +37,24 @@ fi
 echo ">>> Installing ESP-IDF tools for esp32s3"
 ./esp-idf/install.sh esp32s3
 
-# --- 2. esp-homekit-sdk -----------------------------------------------------
-if [ ! -d "esp-homekit-sdk/.git" ]; then
-    echo ">>> Cloning esp-homekit-sdk ${HOMEKIT_VERSION}"
-    git clone -b "${HOMEKIT_VERSION}" --depth 1 --recursive \
-        https://github.com/espressif/esp-homekit-sdk.git
-else
-    echo ">>> esp-homekit-sdk already cloned — skipping clone"
+# --- 2. ESP-Matter ----------------------------------------------------------
+if [ ! -d "esp-matter/.git" ]; then
+    echo ">>> Cloning ESP-Matter ${MATTER_VERSION}"
+    git clone -b "${MATTER_VERSION}" --depth 1 \
+        https://github.com/espressif/esp-matter.git
 fi
+
+cd esp-matter
+echo ">>> Initializing connectedhomeip submodule (this can take several minutes)"
+git submodule update --init --depth 1
+cd connectedhomeip/connectedhomeip
+./scripts/checkout_submodules.py --shallow --platform esp32 --recursive
+cd ../..
+
+echo ">>> Bootstrapping Matter SDK"
+# shellcheck disable=SC1091
+source "${TOOLCHAIN_DIR}/esp-idf/export.sh"
+./install.sh
 
 echo ""
 echo "✅ Setup complete."

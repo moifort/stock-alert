@@ -1,24 +1,20 @@
 // stock-alert firmware entry point.
 //
-// Boots NVS, brings up Wi-Fi (via SoftAP provisioning on first boot), starts
-// the HomeKit accessory exposing a ContactSensor service, and kicks off the
-// (currently mocked) stock sampling task. The sensor's state changes flow into
-// the HAP data model via homekit::publish_state(), where Apple Home picks them
-// up through the local network (no hub required, but a HomePod / Apple TV is
-// needed for remote access).
+// Boots NVS, starts Matter with a single ContactSensor endpoint, and kicks off
+// the (currently mocked) stock sampling task. The sensor's state changes flow
+// into the Matter data model via matter::publish_state(), where HomeKit picks
+// them up through the HomePod mini.
 
 #include <esp_err.h>
 #include <esp_log.h>
+#include <esp_matter.h>
 #include <nvs_flash.h>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include <platform/CHIPDeviceLayer.h>
+#include <platform/CommissionableDataProvider.h>
+#include <setup_payload/OnboardingCodesUtil.h>
 
-extern "C" {
-#include <app_wifi.h>
-}
-
-#include "include/homekit_accessory.h"
+#include "include/matter_endpoints.h"
 #include "include/stock_alert_config.h"
 #include "include/stock_sensor.h"
 
@@ -26,9 +22,12 @@ namespace {
 
 constexpr const char *kTag = "stock_alert";
 
-void on_stock_state_change(stock_alert::sensor::StockState state,
-                           void * /*user_data*/) {
-    stock_alert::homekit::publish_state(state);
+void on_stock_state_change(stock_alert::sensor::StockState state, void * /*user_data*/) {
+    stock_alert::matter::publish_state(state);
+}
+
+void on_matter_event(const ChipDeviceEvent * /*event*/, intptr_t /*arg*/) {
+    // Reserved for commissioning lifecycle hooks (e.g., LED feedback on pair).
 }
 
 }  // namespace
@@ -44,21 +43,27 @@ extern "C" void app_main(void) {
     ESP_LOGI(kTag, "stock-alert booting (firmware %s)",
              stock_alert::config::kFirmwareVersion);
 
-    // Build the HAP accessory database before bringing Wi-Fi up — hap_start()
-    // expects the accessory to already be registered.
-    ESP_ERROR_CHECK(stock_alert::homekit::setup_accessory());
-
-    // Bring Wi-Fi up. First boot: starts a SoftAP "STOCKALERT_xxxx" for
-    // provisioning via the Espressif "ESP SoftAP Provisioning" app. Subsequent
-    // boots: connects directly with stored credentials. Blocks until the
-    // station has an IP.
-    app_wifi_init();
-    ESP_ERROR_CHECK(stock_alert::homekit::start());
-    app_wifi_start(portMAX_DELAY);
-
-    // Sensor sampling runs in its own FreeRTOS task; the callback fires every
-    // time the debounced state flips and is pushed to HAP from there.
+    ESP_ERROR_CHECK(stock_alert::matter::setup_endpoints());
+    ESP_ERROR_CHECK(esp_matter::start(on_matter_event));
     ESP_ERROR_CHECK(stock_alert::sensor::start(on_stock_state_change, nullptr));
 
-    ESP_LOGI(kTag, "Boot complete. Awaiting Apple Home pairing.");
+    // Surface the QR code and manual pairing code in the serial log so a dev
+    // can commission the device without a separate chip-tool invocation.
+    // BLE is always available on the ESP32-S3, so we advertise that capability
+    // alongside the on-network discovery.
+    PrintOnboardingCodes(chip::RendezvousInformationFlags{}
+                             .Set(chip::RendezvousInformationFlag::kBLE)
+                             .Set(chip::RendezvousInformationFlag::kOnNetwork));
+
+    // Surface the BLE name the device will advertise pre-commissioning, so a
+    // dev can match it against what shows up in nRF Connect / LightBlue. The
+    // format mirrors what BLEManagerImpl.cpp builds: "<prefix><discriminator>".
+    uint16_t discriminator = 0;
+    if (chip::DeviceLayer::GetCommissionableDataProvider()->GetSetupDiscriminator(discriminator) ==
+        CHIP_NO_ERROR) {
+        ESP_LOGI(kTag, "BLE advertising name: %s%04u", CONFIG_BLE_DEVICE_NAME_PREFIX,
+                 discriminator);
+    }
+
+    ESP_LOGI(kTag, "Boot complete. Awaiting Matter commissioning via Apple Home.");
 }
