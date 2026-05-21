@@ -30,8 +30,15 @@ constexpr int kButtonPollPeriodMs = 20;     // debouncing poll cadence
 constexpr int kButtonDebounceMs   = 50;     // ignore presses shorter than this
 constexpr int kButtonLongPressMs  = 3000;   // factory-reset threshold
 
-// FreeRTOS task tuning.
-constexpr int kSensorTaskStackBytes = 4096;
+// VL53L1X polling cadence: one ranging every 5 s (0.2 Hz). Cheap, plenty
+// fast for stock monitoring, and leaves the chip idle most of the time —
+// important when we move to battery power.
+constexpr int kSensorPollPeriodMs = 5000;
+
+// FreeRTOS task tuning. Stack must accommodate the I2C reads, hysteresis
+// logic, and the state-change callback that schedules a Matter attribute
+// update via ScheduleLambda — kept at 6 KB to match the button task.
+constexpr int kSensorTaskStackBytes = 6144;
 constexpr int kSensorTaskPriority   = 5;
 // Stack must accommodate the on_button_short callback which schedules a Matter
 // attribute update through the SDK — observed >4 KB consumption in practice.
