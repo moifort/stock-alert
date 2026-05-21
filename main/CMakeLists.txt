@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.cpp"
         "matter_endpoints.cpp"
         "mock_button.cpp"
+        "sensor_vl53l1x.cpp"
         "stock_sensor.cpp"
     INCLUDE_DIRS
         "."

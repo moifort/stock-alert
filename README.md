@@ -9,9 +9,12 @@ you the way it would for a door being opened.
 <!-- TODO photo: device mounted above a container -->
 <!-- TODO photo: the Apple Home notification on iPhone -->
 
-> 🚧 **Phase 1 (current):** the distance sensor is not yet wired. A physical
-> button on the board simulates state changes so the full Apple Home chain
-> can be validated end-to-end. Phase 2 will plug the real ToF sensor in.
+> ✅ **Phase 2 (current):** the VL53L1X time-of-flight sensor is wired and
+> driving the Apple Home state. Place an object 1-3 cm in front of the lens
+> to register it as "present" (Home shows **Closed**); remove it and the
+> state flips to "absent" (Home shows **Open**) after ~5 s of polling. The
+> BOOT button on the XIAO is still wired and overrides the sensor manually,
+> handy for testing automations without moving objects around.
 
 ## What it does, in practice
 
@@ -131,13 +134,31 @@ open for the next step.
 > commissions two Matter fabrics back-to-back (one for your iPhone, one for
 > your HomePod), and the second one can time out if attention is lost.
 
-## Day-to-day use (Phase 1)
+## Day-to-day use
 
-Two physical gestures on the XIAO board:
+Two ways to drive the state, both reflected in Apple Home within a few
+seconds:
+
+### Sensor (primary, automatic)
+
+The VL53L1X polls every **5 seconds**. Distance crosses to/from these
+thresholds (defaults, will be NVS-tunable in Phase 3):
+
+| Distance              | Resulting state     | Maison label |
+| --------------------- | ------------------- | ------------ |
+| < 30 mm               | `OK` (object present)| Closed       |
+| 30 – 50 mm            | unchanged (hysteresis band)              |
+| > 50 mm               | `LOW` (object absent)| Open         |
+
+The 20 mm hysteresis band avoids flapping around the threshold edge.
+End-to-end latency from a stable change to Maison's UI is typically
+**1–5 seconds** — same as commercial Matter sensors (Aqara, Eve, …).
+
+### Physical buttons (manual override / debug)
 
 | Gesture                          | Effect                                           |
 | -------------------------------- | ------------------------------------------------ |
-| Short press (< 3 s) on **B**     | Toggle the state Closed ↔ Open in Home          |
+| Short press (< 3 s) on **B**     | Manually toggle the state, ignoring the sensor   |
 | Long press (≥ 3 s) on **B**      | Full reset (wipes the Matter pairing)            |
 | Short press on **R**             | Software reboot (keeps the pairing)              |
 
@@ -145,18 +166,13 @@ The buttons are **tiny** SMD components (~1.5 mm × 1.5 mm) to the left of the
 Seeed module, near the USB-C connector. Labels `B` and `R` are silkscreened
 in white next to them. Press with a fingernail or a retracted pen tip.
 
-State changes propagate to the Home app within **1–5 seconds** — that's the
-normal end-to-end latency for Apple Home + iCloud Sync, same as Aqara / Eve
-contact sensors.
-
 ## Roadmap
 
-- ✅ **Phase 1** — Matter accessory + physical button simulating a sensor
-- 🚧 **Phase 2** — wire the VL53L1X, periodic distance sampling, automatic
-  triggering with hysteresis (`threshold_low` / `threshold_ok` configurable
-  through NVS)
-- 🔮 **Phase 3** — 3D-printed enclosure, magnetic mount above the container,
-  battery + USB-C charging for cordless operation
+- ✅ **Phase 1** — Matter accessory + physical button driving the state
+- ✅ **Phase 2** — VL53L1X wired, periodic distance sampling, automatic
+  state changes with hysteresis
+- 🔮 **Phase 3** — NVS-backed runtime configuration of thresholds, 3D-printed
+  enclosure, magnetic mount, battery + USB-C charging
 
 ## Troubleshooting
 
@@ -195,14 +211,33 @@ Wi-Fi scan after that should show your network well above -65 dBm.
 The SMD buttons are very flat. Press squarely in the centre, not on the
 edge. The `mock_button` line in the serial monitor confirms detection.
 
+### The sensor reports the same distance no matter what
+
+If `sample mm=` stays constant when you move objects in front of the lens,
+check in this order:
+
+1. **Is something physically stuck to the lens?** Solder splatter, flux
+   residue or even a stray bit of masking tape will create an internal
+   reflection at ~1.5 cm that masks everything beyond.
+2. **Are you facing the right side?** The lens is on the *component* side
+   of the breakout, not the soldered side. The chip is a small black package
+   with a tiny white/grey window.
+3. **Is the field of view (~27°) actually pointed at your test object?**
+   The chip ignores anything off-axis.
+
+If the I2C scan sees `0x29` but every measurement is `OUT_OF_BOUNDS` or
+`HARDWARE_FAIL` even with a clear, well-aimed target, the die is likely
+damaged by soldering heat (see the antenna troubleshooting note about the
+260 °C / 300-320 °C iron-temperature recommendation).
+
 ## Under the hood (for the curious)
 
 - Firmware in **C++17** on **ESP-IDF v5.5** + **ESP-Matter v1.4** (Espressif
   official SDK, code-first — no ZAP file to hand-edit).
 - One Matter endpoint: **Contact Sensor** (`BooleanState` cluster `0x0045`).
 - Commissioning over BLE + Wi-Fi (Apple Home multi-admin, two fabrics).
-- Phase 2 hysteresis: separate `THRESHOLD_LOW_MM` / `THRESHOLD_OK_MM` to
-  avoid flapping around a single threshold.
+- VL53L1X driver based on the ST Ultra Lite Driver default-configuration
+  blob, single-bus continuous ranging, hysteresis in software.
 - Hardware constants centralised in `main/include/stock_alert_config.h`.
 - Project conventions and gotchas documented in `CLAUDE.md`.
 
