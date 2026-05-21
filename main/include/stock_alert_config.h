@@ -12,7 +12,9 @@ constexpr const char *kFirmwareVersion = "0.1.0-mock";
 // D4 = GPIO5 (SDA), D5 = GPIO6 (SCL) per Seeed pinout.
 constexpr int kI2cSdaGpio = 5;
 constexpr int kI2cSclGpio = 6;
-constexpr int kI2cFreqHz  = 400'000;
+// 100 kHz is the safest for the VL53L0X breakout — observed 400 kHz timeouts
+// on the CJMCU-style boards we use, likely due to weak external pull-ups.
+constexpr int kI2cFreqHz  = 100'000;
 
 // Distance thresholds (mm) for ContactSensor state transitions.
 // Hysteresis: state opens (low stock) at LOW; closes again only when below OK.
