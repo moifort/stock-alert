@@ -13,17 +13,22 @@ namespace {
 
 constexpr const char *kTag = "stock_sensor";
 
-StateChangeCb s_callback   = nullptr;
-void         *s_user_data  = nullptr;
-StockState    s_state      = StockState::kOk;
-bool          s_started    = false;
-bool          s_have_sensor = false;
+StateChangeCb s_callback        = nullptr;
+void         *s_user_data       = nullptr;
+StockState    s_state           = StockState::kOk;
+bool          s_started         = false;
+bool          s_have_sensor     = false;
+// Forces the first valid sample to publish unconditionally so the Matter
+// hub re-syncs to the device's actual state after a reboot — otherwise
+// Apple Home keeps showing the last state we pushed before the restart.
+bool          s_first_publish_pending = true;
 
 void apply_state(StockState new_state, const char *reason) {
-    if (new_state == s_state) {
+    if (new_state == s_state && !s_first_publish_pending) {
         return;
     }
     s_state = new_state;
+    s_first_publish_pending = false;
     ESP_LOGI(kTag, "state -> %s (%s)",
              s_state == StockState::kLow ? "LOW (open)" : "OK (closed)",
              reason);
