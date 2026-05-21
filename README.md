@@ -170,16 +170,15 @@ otherwise Matter cannot work at all.
 
 ### Pairing fails, the device shows up in no Wi-Fi scan
 
-Almost always an **antenna problem**. The XIAO ESP32-S3 ships configured to
-use an external antenna via the U.FL connector — with nothing plugged in,
-the radio sensitivity drops by ~30 dB (RSSI around -90 dBm instead of -50).
-Two fixes:
+Almost always an **unplugged antenna**. The XIAO ESP32-S3 comes with a small
+U.FL / IPEX antenna in the box, but the board ships with the RF path routed
+to the external connector — without the antenna clipped on, the radio
+sensitivity drops by ~30 dB (RSSI around -90 dBm instead of -50).
 
-1. **Plug a U.FL / IPEX 2.4 GHz antenna** (~3 € on Amazon, plug & play)
-2. **Move the 0-ohm resistor** to the `PCB` pads (on the back of the board)
-   to route the signal to the antenna trace already etched on the module.
-   Shorter range than an external antenna but zero extra hardware. Needs a
-   fine-tip iron and a magnifier.
+**Fix:** look inside the original packaging for a tiny flexible antenna with
+a small metal connector on a short cable. Clip it onto the gold U.FL socket
+on the board (push straight down until you feel it snap). Done. A fresh
+Wi-Fi scan after that should show your network well above -65 dBm.
 
 ### `Pairing failed` after multiple attempts
 
